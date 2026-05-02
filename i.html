@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Жалобы модерации | Discord Webhook</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f0f1a 0%, #161a2b 100%);
+            font-family: 'Segoe UI', 'Inter', system-ui, 'Roboto', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 1.5rem;
+        }
+
+        /* Стиль — тёмный, но в красноватых акцентах для жалоб */
+        .glass-card {
+            background: rgba(25, 28, 40, 0.85);
+            backdrop-filter: blur(14px);
+            border-radius: 2rem;
+            box-shadow: 0 25px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 85, 85, 0.15);
+            max-width: 760px;
+            width: 100%;
+            padding: 2rem 2rem 2.5rem;
+            transition: all 0.3s ease;
+        }
+
+        @media (max-width: 550px) {
+            .glass-card {
+                padding: 1.5rem;
+            }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .badge {
+            background: #ed4245;
+            display: inline-block;
+            padding: 0.3rem 1.2rem;
+            border-radius: 60px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: white;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 12px rgba(237, 66, 69, 0.4);
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff, #ffb7b7);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .sub {
+            color: #b9bfdf;
+            font-size: 0.85rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: inline-block;
+            padding-top: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #f0f2ff;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        label i {
+            font-style: normal;
+            font-weight: 700;
+        }
+
+        input, textarea, select {
+            background: #10131f;
+            border: 1.5px solid #2c314a;
+            border-radius: 1rem;
+            padding: 0.85rem 1.2rem;
+            font-size: 1rem;
+            color: #f5f7ff;
+            font-family: inherit;
+            transition: all 0.2s;
+            outline: none;
+            resize: vertical;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            border-color: #ed4245;
+            box-shadow: 0 0 0 3px rgba(237, 66, 69, 0.25);
+            background: #181e30;
+        }
+
+        textarea {
+            min-height: 90px;
+        }
+
+        /* Чекбокс согласия */
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            background: #10131f;
+            padding: 0.9rem 1.2rem;
+            border-radius: 1rem;
+            border: 1.5px solid #2c314a;
+            margin-top: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .checkbox-group input {
+            width: 1.3rem;
+            height: 1.3rem;
+            accent-color: #ed4245;
+            margin: 0;
+            padding: 0;
+            transform: scale(1);
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            margin-bottom: 0;
+            cursor: pointer;
+            font-weight: 500;
+            color: #e2e6ff;
+        }
+
+        button {
+            background: linear-gradient(95deg, #ed4245, #b82b2e);
+            border: none;
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: white;
+            border-radius: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 0.8rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.6rem;
+            box-shadow: 0 8px 18px rgba(237, 66, 69, 0.25);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(95deg, #ff5a5d, #ed4245);
+            box-shadow: 0 12px 24px rgba(237, 66, 69, 0.4);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .toast-msg {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #1a1e2ce6;
+            backdrop-filter: blur(12px);
+            color: #fff;
+            text-align: center;
+            border-radius: 60px;
+            padding: 12px 24px;
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.9rem;
+            font-weight: 500;
+            z-index: 1000;
+            border-left: 4px solid #ed4245;
+            box-shadow: 0 12px 20px rgba(0,0,0,0.4);
+            transition: visibility 0.2s, opacity 0.2s;
+            opacity: 0;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .toast-msg.show {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .toast-msg.success {
+            border-left-color: #23a55a;
+        }
+
+        hr {
+            border: none;
+            height: 1px;
+            background: linear-gradient(to right, transparent, #2c314a, transparent);
+            margin: 0.5rem 0 1.2rem;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #5f6b97;
+            margin-top: 1.8rem;
+        }
+        .required-star {
+            color: #ed4245;
+            font-size: 0.9rem;
+        }
+        .warning-note {
+            font-size: 0.75rem;
+            color: #aaadcc;
+            margin-top: 0.3rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="glass-card">
+    <div class="header">
+        <div class="badge">⚠️ ЖАЛОБЫ И НАРУШЕНИЯ</div>
+        <h1>📢 Форма жалобы</h1>
+        <div class="sub">Сообщите модерации о нарушении правил &nbsp;•&nbsp; Анонимно или открыто</div>
+    </div>
+
+    <form id="complaintForm">
+        <!-- 1. Ваш ник -->
+        <div class="form-group">
+            <label><i>🕵️</i> 1. Ваш ник <span class="required-star">*</span></label>
+            <input type="text" id="complainantNick" name="complainantNick" placeholder="Ваш Discord / игровой никнейм" required>
+        </div>
+
+        <!-- 2. Ник нарушителя -->
+        <div class="form-group">
+            <label><i>⚠️</i> 2. Ник нарушителя <span class="required-star">*</span></label>
+            <input type="text" id="violatorNick" name="violatorNick" placeholder="Никнейм пользователя, нарушившего правила" required>
+        </div>
+
+        <!-- 3. Причина нарушения -->
+        <div class="form-group">
+            <label><i>📌</i> 3. Причина нарушения <span class="required-star">*</span></label>
+            <textarea id="violationReason" name="violationReason" placeholder="Опишите, что именно произошло: оскорбления, флуд, реклама, читы, угрозы и т.д." rows="3" required></textarea>
+        </div>
+
+        <!-- 4. Доказательства (ссылка на сообщение или видео) -->
+        <div class="form-group">
+            <label><i>🔗</i> 4. Доказательства (ссылка на сообщение или видео) <span class="required-star">*</span></label>
+            <input type="url" id="evidence" name="evidence" placeholder="https://discord.com/channels/... / https://imgur.com/... / ссылка на скриншот или видео" required>
+            <div class="warning-note">📎 Скриншоты, ссылки на дискорд сообщения, видео-доказательства помогут быстрее разобраться.</div>
+        </div>
+
+        <!-- 5. Согласие (обязательное) -->
+        <div class="form-group">
+            <label><i>✅</i> 5. Согласие <span class="required-star">*</span></label>
+            <div class="checkbox-group">
+                <input type="checkbox" id="consentCheckbox" required>
+                <label for="consentCheckbox">Я подтверждаю, что предоставленная информация достоверна и я несу ответственность за ложные жалобы.</label>
+            </div>
+        </div>
+
+        <hr>
+        <button type="submit" id="submitComplaintBtn">
+            🚨 Отправить жалобу в Discord
+        </button>
+    </form>
+    <footer>
+        Все жалобы рассматриваются модерацией конфиденциально.
+    </footer>
+</div>
+
+<div id="toastMsg" class="toast-msg">✅ Жалоба отправлена!</div>
+
+<script>
+    (function() {
+        // ТОТ ЖЕ САМЫЙ ВЕБХУК, что и для заявок
+        const WEBHOOK_URL = "https://discord.com/api/webhooks/1500027809047908392/Fz8EMr7v8F-JrRVOPQNPnHOq_ZUeb9-VIsX5d6MV_u9IH2v3dYRmER80yft93LqEdqfW";
+        
+        // DOM элементы
+        const form = document.getElementById('complaintForm');
+        const submitBtn = document.getElementById('submitComplaintBtn');
+        const toast = document.getElementById('toastMsg');
+        
+        // Поля
+        const complainantNick = document.getElementById('complainantNick');
+        const violatorNick = document.getElementById('violatorNick');
+        const violationReason = document.getElementById('violationReason');
+        const evidenceInput = document.getElementById('evidence');
+        const consentCheck = document.getElementById('consentCheckbox');
+        
+        function showNotification(message, isError = false, isSuccess = false) {
+            toast.textContent = message;
+            toast.classList.remove('error', 'success');
+            if (isError) {
+                toast.classList.add('error');
+                toast.style.borderLeftColor = "#ed4245";
+            } else if (isSuccess) {
+                toast.classList.add('success');
+                toast.style.borderLeftColor = "#23a55a";
+            } else {
+                toast.style.borderLeftColor = "#ed4245";
+            }
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3800);
+        }
+        
+        // экранирование markdown
+        function escapeMarkdown(text) {
+            if (!text) return "";
+            return text.replace(/([`*_~|\\])/g, '\\$1')
+                       .replace(/@(everyone|here)/gi, '@\u200b$1');
+        }
+        
+        function truncateText(text, maxLength) {
+            if (text.length <= maxLength) return text;
+            return text.substring(0, maxLength - 3) + "...";
+        }
+        
+        // Валидация
+        function validateComplaint() {
+            const complainant = complainantNick.value.trim();
+            if (complainant === "") {
+                showNotification("❌ Укажите ваш ник!", true);
+                complainantNick.focus();
+                return false;
+            }
+            if (complainant.length < 2) {
+                showNotification("❌ Ник слишком короткий (минимум 2 символа)", true);
+                return false;
+            }
+            
+            const violator = violatorNick.value.trim();
+            if (violator === "") {
+                showNotification("❌ Укажите ник нарушителя!", true);
+                violatorNick.focus();
+                return false;
+            }
+            if (violator.length < 2) {
+                showNotification("❌ Ник нарушителя слишком короткий", true);
+                return false;
+            }
+            
+            const reason = violationReason.value.trim();
+            if (reason === "") {
+                showNotification("❌ Опишите причину нарушения!", true);
+                violationReason.focus();
+                return false;
+            }
+            if (reason.length < 8) {
+                showNotification("❌ Опишите нарушение подробнее (минимум 8 символов)", true);
+                return false;
+            }
+            
+            let evidence = evidenceInput.value.trim();
+            if (evidence === "") {
+                showNotification("❌ Требуется ссылка на доказательства (скриншот, сообщение, видео)", true);
+                evidenceInput.focus();
+                return false;
+            }
+            // простая проверка, что похоже на URL
+            if (!evidence.match(/^https?:\/\//i) && !evidence.includes(".")) {
+                // допустим ссылки могут быть и без http, но лучше предупредить
+                if (!evidence.startsWith("http")) {
+                    showNotification("⚠️ Введите корректную ссылку (начинающуюся с http:// или https://)", true);
+                    evidenceInput.focus();
+                    return false;
+                }
+            }
+            
+            if (!consentCheck.checked) {
+                showNotification("⚠️ Вы должны подтвердить согласие на достоверность жалобы", true);
+                consentCheck.focus();
+                return false;
+            }
+            
+            return {
+                complainant: escapeMarkdown(complainant),
+                violator: escapeMarkdown(violator),
+                reason: escapeMarkdown(reason),
+                evidence: evidence
+            };
+        }
+        
+        // Отправка в Discord (тот же вебхук, другой embed)
+        async function sendComplaintToDiscord(data) {
+            // создаём embed для жалобы - яркий, красноватый оттенок
+            const embed = {
+                title: "🚨 НОВАЯ ЖАЛОБА НА НАРУШЕНИЕ",
+                color: 0xed4245,  // red discord style
+                timestamp: new Date().toISOString(),
+                footer: {
+                    text: "Система жалоб • Модерация рассмотрит в ближайшее время",
+                    icon_url: "https://cdn.discordapp.com/emojis/864449024290979890.png"
+                },
+                fields: [
+                    {
+                        name: "👥 Жалобщик (ник)",
+                        value: data.complainant || "Не указан",
+                        inline: true
+                    },
+                    {
+                        name: "🎯 Нарушитель",
+                        value: data.violator || "Не указан",
+                        inline: true
+                    },
+                    {
+                        name: "📋 Причина нарушения",
+                        value: truncateText(data.reason, 950),
+                        inline: false
+                    },
+                    {
+                        name: "🔗 Доказательства (ссылка)",
+                        value: data.evidence.length > 100 ? `[Ссылка на доказательства](${data.evidence})` : data.evidence,
+                        inline: false
+                    }
+                ],
+                thumbnail: {
+                    url: "https://cdn-icons-png.flaticon.com/512/709/709612.png"
+                }
+            };
+            
+            // иногда ссылка может быть длинной, но discord сам обработает в embed
+            const payload = {
+                username: "📡 Жалобы Модерации",
+                avatar_url: "https://cdn-icons-png.flaticon.com/512/190/190411.png",
+                embeds: [embed],
+                content: "<@&role_id> **Внимание! Поступила новая жалоба.**" 
+                // роль можно убрать или оставить как текст; но чтобы не пингануть роль без id, просто текст
+            };
+            // Убираем content, если не хотим пинговать (оставим как информационный)
+            payload.content = "🔔 **Новое обращение в модерацию**";
+            
+            try {
+                const response = await fetch(WEBHOOK_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                if (response.ok) {
+                    return { success: true };
+                } else {
+                    let errorBody = "";
+                    try {
+                        errorBody = await response.json();
+                        errorBody = JSON.stringify(errorBody);
+                    } catch(e) { errorBody = await response.text(); }
+                    console.error("Ошибка вебхука:", response.status, errorBody);
+                    return { success: false, error: `Код ${response.status}: ${errorBody.substring(0, 120)}` };
+                }
+            } catch(netErr) {
+                console.error("Сетевая ошибка:", netErr);
+                return { success: false, error: "Ошибка сети. Не удалось отправить жалобу." };
+            }
+        }
+        
+        // Состояние загрузки
+        function setLoading(loading) {
+            if (loading) {
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = "0.7";
+                submitBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20"/></svg> Отправка жалобы...`;
+                if (!document.querySelector('#spinnerKeyframes')) {
+                    const style = document.createElement('style');
+                    style.id = 'spinnerKeyframes';
+                    style.textContent = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } } svg { transform-origin: center; }';
+                    document.head.appendChild(style);
+                }
+            } else {
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = "1";
+                submitBtn.innerHTML = `🚨 Отправить жалобу в Discord`;
+            }
+        }
+        
+        // Обработка отправки формы
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const validated = validateComplaint();
+            if (!validated) return;
+            
+            setLoading(true);
+            
+            const result = await sendComplaintToDiscord({
+                complainant: validated.complainant,
+                violator: validated.violator,
+                reason: validated.reason,
+                evidence: validated.evidence
+            });
+            
+            if (result.success) {
+                showNotification("✅ Жалоба отправлена! Модерация проверит её в ближайшее время.", false, true);
+                form.reset();
+                // сбросить чекбокс вручную (reset не сработает полностью из-за особенностей)
+                consentCheck.checked = false;
+                // опционально чистим поля, но reset уже работает нативной сброс
+                // дополнительно убеждаемся, что значения чистые
+                complainantNick.value = '';
+                violatorNick.value = '';
+                violationReason.value = '';
+                evidenceInput.value = '';
+            } else {
+                let errMsg = result.error || "Неизвестная ошибка вебхука";
+                showNotification(`❌ Ошибка отправки: ${errMsg.substring(0, 140)}`, true);
+            }
+            
+            setLoading(false);
+        });
+        
+        // небольшая дополнительная валидация при потере фокуса (для ссылок)
+        evidenceInput.addEventListener('blur', () => {
+            let val = evidenceInput.value.trim();
+            if (val !== "" && !val.match(/^https?:\/\//i)) {
+                // не блокируем, просто предупреждение, но не ошибка критическая
+                if (!val.startsWith("http")) {
+                    showNotification("💡 Убедитесь, что ссылка начинается с http:// или https://", true);
+                    setTimeout(() => toast.classList.remove('show'), 2000);
+                }
+            }
+        });
+        
+        console.log("Форма жалоб готова. Вебхук тот же самый. Discord будет принимать обращения.");
+    })();
+</script>
+</body>
+</html>
